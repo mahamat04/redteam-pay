@@ -71,7 +71,6 @@
   .diff { font-family: "IBM Plex Mono", "Consolas", monospace; font-size: 12.5px; white-space: pre; background: rgba(15,23,42,.6); padding: var(--space-4); border-radius: 10px; border: 1px solid var(--border); overflow: auto; max-height: 260px; margin-top: var(--space-3); line-height: 1.7; }
   .diff .add { color: var(--success); } .diff .del { color: var(--destructive); }
   .patch-text { color: var(--muted-fg); font-size: 13.5px; line-height: 1.6; }
-  .footer { max-width: 1280px; margin: 0 auto; padding: var(--space-4) var(--space-6); color: var(--muted-fg); font-size: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
   @media (max-width: 900px) { .span-4, .span-6, .span-8 { grid-column: span 12; } main { padding: var(--space-4); } .counter { font-size: 38px; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
   .progress-bar { height: 4px; background: var(--muted); border-radius: 2px; overflow: hidden; margin-top: var(--space-3); }
@@ -130,10 +129,6 @@
     </div>
   </div>
 </main>
-<div class="footer">
-  <span id="paypal">PayPal: —</span>
-  <span>RedTeam Pay · UI/UX Pro Max design system · IBM Plex Sans</span>
-</div>
 <script>
 const attacksEl = document.getElementById('attacks');
 const logEl = document.getElementById('log');
@@ -142,7 +137,6 @@ const avoidedEl = document.getElementById('avoided');
 const patchEl = document.getElementById('patch');
 const diffEl = document.getElementById('diff');
 const runBtn = document.getElementById('run');
-const paypalEl = document.getElementById('paypal');
 const statusEl = document.getElementById('status');
 const statusText = document.getElementById('statusText');
 const progressEl = document.getElementById('progress');
@@ -189,7 +183,7 @@ runBtn.addEventListener('click', () => {
         l.startsWith('+') ? `<span class="add">${l}</span>` : l.startsWith('-') ? `<span class="del">${l}</span>` : l
       ).join('\n');
     }
-    if (d.type === 'paypal') paypalEl.textContent = 'PayPal: ' + d.proof;
+    if (d.type === 'paypal') logLine('PayPal: ' + d.proof, 'info');
     if (d.type === 'done') { logLine('DONE — losses avoided: $' + Number(d.avoided).toFixed(2), 'ok'); setStatus('Complete', true); runBtn.disabled = false; es.close(); }
     if (d.type === 'error') { logLine('ERROR: ' + d.message, 'fail'); setStatus('Error', false); runBtn.disabled = false; es.close(); }
   };
