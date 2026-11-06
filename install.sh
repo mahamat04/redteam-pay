@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
-set -e
-echo "Installing RedTeam Pay..."
-npm install -g redteam-pay 2>/dev/null || npm install
-echo ""
-echo "Copy integrations/<tool>.mcp.json into your MCP client config."
-echo "Then set PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, LLM_API_KEY in env."
-echo "Run: redteam-pay   (opens http://localhost:3000)"
+set -euo pipefail
+cd "$(dirname "$0")"
+
+echo "Installing RedTeam Pay dependencies..."
+npm install
+echo
+echo "Installing the Codex and VS Code agent integrations in this folder..."
+npm run setup:ide -- all .
+echo
+echo "Ready. Start the dashboard with: npm start"
+echo "Then open http://localhost:3000"
+echo "Restart or reload your IDE agent to discover RedTeam Pay."

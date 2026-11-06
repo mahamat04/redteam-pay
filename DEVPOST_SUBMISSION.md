@@ -1,38 +1,45 @@
 # Devpost Submission — RedTeam Pay
 
 ## Project name
-RedTeam Pay — Adversarial Payment Simulator
+
+RedTeam Pay — Payment Webhook Security Agent
 
 ## Tagline
-Two AI agents face off: a Builder hardens a payment flow, an Attacker hammers it with fraud and failure. Watch the bug appear, then the "losses avoided" counter fill up.
+
+Install a payment security agent in your IDE. Find webhook risks before they reach production.
 
 ## What it does
-RedTeam Pay runs an adversarial loop over a payment webhook handler:
-- Phase 1 (naive): an Attacker fires 5 attacks — duplicate webhook (replay), tampered amount, replay of old transaction id, late callback, retry storm. The naive handler credits on every event. Losses are tallied live.
-- Builder: an LLM (Groq, free tier) explains the hardening; a deterministic patch adds idempotency, amount reconciliation, replay window, and HMAC signature verification.
-- Phase 2 (hardened): the same attacks re-run and are all blocked. The "losses avoided" counter animates to the Phase 1 total.
 
-Optionally creates a real PayPal sandbox order to prove integration. Real PayPal webhook signature verification is wired via `/v1/notifications/verify-webhook-signature` when `PAYPAL_WEBHOOK_ID` is set.
+RedTeam Pay combines an interactive payment webhook lab with an installable IDE agent. Its MCP server exposes three tools to an IDE agent:
+
+- Find payment-related source files and likely security-control indicators, with file and line references.
+- Explain the lab's webhook attack scenarios and defensive controls.
+- Run deterministic reference attacks against an in-memory vulnerable handler and hardened reference.
+
+An included Agent Skill guides the IDE agent to inspect the cited code in context, explain concrete evidence, and call out uncertainty. The scanner is read-only and heuristic; the reference attacks never execute the developer's application.
+
+## PayPal and AI
+
+- The web dashboard can optionally create a PayPal sandbox order after an explicit click. It is not captured. The MCP tools do not call PayPal or access credentials.
+- An optional OpenAI-compatible LLM explains the defenses used in a simulation. The built-in guide works without an API key.
+- Signature verification in the reference simulation is a fixture. A production integration must use PayPal's real webhook verification and reconcile events against its own order record.
 
 ## How it's built
-- Node 20 + Express + SSE for live streaming.
-- In-memory payment store; naive vs hardened handlers.
-- PayPal REST (client credentials) for sandbox order creation + webhook verification.
-- OpenAI-compatible LLM client pointed at Groq free tier (configurable to any provider).
-- Static HTML dashboard (no build step) — single file.
 
-## Tools / AI used
-- Groq (llama-3.3-70b) for builder hardening explanation (free tier).
-- PayPal Developer sandbox: Orders API + webhook signature verification.
-- Deterministic fallback so the demo runs with zero API keys.
+- Node.js 20+, Express, and the Model Context Protocol TypeScript SDK.
+- Static HTML, CSS, and JavaScript dashboard, styled with JetBrains Mono.
+- MCP server over stdio for Codex and VS Code agent integrations.
+- Agent Skill in the standard `.agents/skills/` and `.github/skills/` locations.
+- Deterministic in-memory scenarios, server-sent progress events, browser-local history, and JSON report export.
 
-## Tracks targeted
-- Best Use of PayPal + AI
-- Best Use of Agentic Commerce (agent transacts in sandbox)
-- Most Creative / Innovation
+## Install and demo
 
-## Run
-See README.md. `npm install && npm start` -> http://localhost:3000 -> click "Run adversarial loop".
+1. From the RedTeam Pay folder, run `npm install`, then `npm run setup:ide -- all .`.
+2. Restart the IDE agent and ask it to review the current project's payment or webhook code.
+3. Inspect the returned source references and ask the agent to explain any uncertain indicator.
+4. In the web lab, select attacks and run the reference comparison; inspect the report and export it as JSON.
+5. Optionally create a PayPal sandbox order from the dashboard. It is not captured.
 
-## Demo video (TODO)
-Under 3 minutes: show naive run -> losses -> builder patch -> hardened run -> losses avoided.
+## Scope
+
+RedTeam Pay is a review aid and learning lab, not an automated security certification. Its source scan can miss controls or flag irrelevant patterns. Findings require manual review in context. The simulator does not execute user code, edit project files, send webhook events, or move real money.

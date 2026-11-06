@@ -1,9 +1,17 @@
-# install.ps1 - Windows installer for RedTeam Pay
 $ErrorActionPreference = "Stop"
-Write-Host "Installing RedTeam Pay..."
-npm install -g redteam-pay 2>$null
-if ($LASTEXITCODE -ne 0) { npm install }
-Write-Host ""
-Write-Host "Copy integrations\<tool>.mcp.json into your MCP client config."
-Write-Host "Set PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, LLM_API_KEY in env."
-Write-Host "Run: redteam-pay   (opens http://localhost:3000)"
+Push-Location $PSScriptRoot
+try {
+    Write-Host "Installing RedTeam Pay dependencies..."
+    npm install
+    if ($LASTEXITCODE -ne 0) { throw "npm install failed." }
+    Write-Host ""
+    Write-Host "Installing the Codex and VS Code agent integrations in this folder..."
+    npm run setup:ide -- all .
+    if ($LASTEXITCODE -ne 0) { throw "IDE setup failed." }
+    Write-Host ""
+    Write-Host "Ready. Start the dashboard with: npm start"
+    Write-Host "Then open http://localhost:3000"
+    Write-Host "Restart or reload your IDE agent to discover RedTeam Pay."
+} finally {
+    Pop-Location
+}
