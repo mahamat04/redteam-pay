@@ -1,18 +1,26 @@
 {
   "name": "redteam-pay",
-  "version": "0.1.0",
-  "description": "Adversarial payment simulator: Builder vs Attacker agents over PayPal sandbox.",
+  "version": "0.2.0",
+  "description": "Adversarial payment simulator: Builder vs Attacker agents over PayPal sandbox. Installable as MCP server in Hermes, Codex, Copilot.",
   "type": "module",
   "main": "server.js",
+  "bin": {
+    "redteam-pay": "./server.js",
+    "redteam-pay-mcp": "./server.js"
+  },
+  "files": ["server.js", "lib/", "public/", "README.md", "LICENSE"],
+  "engines": { "node": ">=20" },
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node --test tests/*.test.js"
   },
+  "keywords": ["paypal", "mcp", "fintech", "adversarial", "red-team", "payments", "webhooks", "hermes", "codex", "copilot"],
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/your-org/redteam-pay" },
   "dependencies": {
     "express": "^4.19.2",
     "dotenv": "^16.4.5",
     "openai": "^4.70.0"
-  },
-  "license": "MIT"
+  }
 }
