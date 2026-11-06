@@ -43,7 +43,9 @@ app.get("/api/run", async (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
-  const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
+  const send = (obj) => { try { res.write(`data: ${JSON.stringify(obj)}\n\n`); } catch (e) {} };
+  let aborted = false;
+  req.on("close", () => { aborted = true; });
   try {
     resetStore();
     send({ type: "phase", phase: 1, title: "Phase 1 — Naive handler (vulnerable)" });
@@ -53,7 +55,7 @@ app.get("/api/run", async (req, res) => {
       const r = await a.run(naiveHandler);
       if (r.success) totalLoss += r.loss;
       send({ type: "attack_result", name: a.name, success: r.success, loss: r.loss, detail: r.detail });
-      await sleep(600);
+      if (aborted) return; await sleep(600);
     }
     send({ type: "phase_done", phase: 1, totalLoss, message: `Naive handler lost $${totalLoss.toFixed(2)}` });
 
@@ -102,7 +104,7 @@ app.get("/api/run", async (req, res) => {
       send({ type: "attack_start", name: a.name });
       const r = await a.run(hardenedHandler);
       send({ type: "attack_result", name: a.name, success: r.success, loss: r.loss, detail: r.detail, blocked: !r.success });
-      await sleep(600);
+      if (aborted) return; await sleep(600);
     }
     send({ type: "phase_done", phase: 2, totalLoss: 0, avoided: totalLoss, message: `All attacks blocked. Losses avoided: $${totalLoss.toFixed(2)}` });
     send({ type: "done", avoided: totalLoss });
@@ -113,7 +115,30 @@ app.get("/api/run", async (req, res) => {
   }
 });
 
-app.get("/api/health", (req, res) => res.json({ ok: true }));
+app.get("/api/health", (req, res) => res.json({ ok: true, version: "0.2.0", uptime: process.uptime(), env: process.env.PAYPAL_ENVIRONMENT || "sandbox" }));
+
+// 404
+app.use((req, res) => res.status(404).json({ error: "Not found" }));
+// Global error handler (no stack traces to client)
+app.use((err, req, res, next) => {
+  console.error("[error]", err && err.message ? err.message : err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: "Internal server error" });
+});
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`RedTeam Pay running on http://localhost:${PORT}`));
+const server = app.listen(PORT, () => {
+  console.log(`RedTeam Pay v0.2.0 running on http://localhost:${PORT}`);
+  console.log(`PayPal: ${process.env.PAYPAL_CLIENT_ID ? "configured (" + (process.env.PAYPAL_ENVIRONMENT || "sandbox") + ")" : "mock mode"}`);
+  console.log(`LLM: ${process.env.LLM_API_KEY ? process.env.LLM_MODEL : "deterministic fallback"}`);
+});
+
+function shutdown(sig) {
+  console.log(`\n${sig} received, shutting down gracefully...`);
+  server.close(() => { console.log("Server closed."); process.exit(0); });
+  setTimeout(() => process.exit(1), 5000).unref();
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("uncaughtException", (e) => { console.error("uncaughtException:", e); });
+process.on("unhandledRejection", (e) => { console.error("unhandledRejection:", e); });
