@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>RedTeam Pay — Adversarial Payment Simulator</title>
+<style>
+  :root { --bg:#0b1020; --card:#141a33; --red:#ff5c6a; --green:#4ade80; --yellow:#fbbf24; --text:#e6e9f2; --muted:#9aa3bf; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: 'Segoe UI', system-ui, sans-serif; background:var(--bg); color:var(--text); }
+  header { padding:20px 28px; border-bottom:1px solid #222a4a; display:flex; align-items:center; gap:16px; }
+  header h1 { margin:0; font-size:20px; }
+  header .sub { color:var(--muted); font-size:13px; }
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; padding:20px 28px; }
+  .card { background:var(--card); border:1px solid #222a4a; border-radius:12px; padding:16px; }
+  .card h2 { margin:0 0 12px; font-size:15px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+  .counter { font-size:44px; font-weight:700; }
+  .counter.red { color:var(--red); }
+  .counter.green { color:var(--green); }
+  .log { font-family: 'Consolas', monospace; font-size:13px; max-height:360px; overflow:auto; }
+  .log .line { padding:6px 8px; border-radius:6px; margin-bottom:4px; background:#0e1428; }
+  .log .line.fail { border-left:3px solid var(--red); }
+  .log .line.ok { border-left:3px solid var(--green); }
+  .log .line.info { border-left:3px solid var(--yellow); color:var(--muted); }
+  .attacks { list-style:none; padding:0; margin:0; }
+  .attacks li { display:flex; justify-content:space-between; padding:8px 10px; border-radius:6px; margin-bottom:4px; background:#0e1428; }
+  .attacks li .name { font-weight:600; }
+  .attacks li .tag { font-size:12px; padding:2px 8px; border-radius:999px; }
+  .tag.fail { background:#3a1520; color:var(--red); }
+  .tag.ok { background:#13301f; color:var(--green); }
+  .tag.pending { background:#2a2410; color:var(--yellow); }
+  .btn { background:#3b82f6; color:#fff; border:none; padding:10px 18px; border-radius:8px; font-weight:600; cursor:pointer; }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .row { display:flex; gap:12px; align-items:center; }
+  .diff { font-family:'Consolas',monospace; font-size:12px; white-space:pre; background:#0e1428; padding:10px; border-radius:6px; }
+  .diff .add { color:var(--green); }
+  .diff .del { color:var(--red); }
+  .footer { padding:12px 28px; color:var(--muted); font-size:12px; border-top:1px solid #222a4a; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>RedTeam Pay — Adversarial Payment Simulator</h1>
+    <div class="sub">Builder vs Attacker · PayPal sandbox · free LLM (Groq)</div>
+  </div>
+  <div style="margin-left:auto" class="row">
+    <button id="run" class="btn">Run adversarial loop</button>
+  </div>
+</header>
+
+<div class="grid">
+  <div class="card">
+    <h2>Losses</h2>
+    <div class="row">
+      <div>
+        <div style="color:var(--muted);font-size:12px">Phase 1 (naive) lost</div>
+        <div id="lost" class="counter red">$0.00</div>
+      </div>
+      <div>
+        <div style="color:var(--muted);font-size:12px">Phase 2 avoided</div>
+        <div id="avoided" class="counter green">$0.00</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Attacks</h2>
+    <ul id="attacks" class="attacks"></ul>
+  </div>
+  <div class="card" style="grid-column:1/-1">
+    <h2>Live log</h2>
+    <div id="log" class="log"></div>
+  </div>
+  <div class="card" style="grid-column:1/-1">
+    <h2>Builder patch</h2>
+    <div id="patch" class="log" style="color:var(--muted)">Waiting for run…</div>
+    <pre id="diff" class="diff" style="display:none"></pre>
+  </div>
+</div>
+
+<div class="footer" id="paypal">PayPal: —</div>
+
+<script>
+const attacksEl = document.getElementById('attacks');
+const logEl = document.getElementById('log');
+const lostEl = document.getElementById('lost');
+const avoidedEl = document.getElementById('avoided');
+const patchEl = document.getElementById('patch');
+const diffEl = document.getElementById('diff');
+const runBtn = document.getElementById('run');
+const paypalEl = document.getElementById('paypal');
+
+function logLine(text, cls='info') {
+  const d = document.createElement('div');
+  d.className = 'line ' + cls;
+  d.textContent = text;
+  logEl.appendChild(d);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function setAttack(name, tag, cls) {
+  let li = [...attacksEl.children].find(x => x.dataset.name === name);
+  if (!li) { li = document.createElement('li'); li.dataset.name = name; attacksEl.appendChild(li); }
+  li.innerHTML = `<span class="name">${name}</span><span class="tag ${cls}">${tag}</span>`;
+}
+function animateCounter(el, target) {
+  const start = parseFloat(el.textContent.replace(/[^0-9.]/g,'')) || 0;
+  const dur = 800; const t0 = performance.now();
+  function tick(t) {
+    const p = Math.min(1, (t-t0)/dur);
+    const v = start + (target-start)*p;
+    el.textContent = '$' + v.toFixed(2);
+    if (p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+runBtn.addEventListener('click', () => {
+  runBtn.disabled = true;
+  attacksEl.innerHTML = '';
+  logEl.innerHTML = '';
+  lostEl.textContent = '$0.00';
+  avoidedEl.textContent = '$0.00';
+  patchEl.textContent = 'Patching…';
+  diffEl.style.display = 'none';
+  const es = new EventSource('/api/run');
+  es.onmessage = (e) => {
+    const d = JSON.parse(e.data);
+    if (d.type === 'phase') {
+      logLine('=== ' + d.title + ' ===', 'info');
+    }
+    if (d.type === 'attack_start') {
+      setAttack(d.name, 'running', 'pending');
+    }
+    if (d.type === 'attack_result') {
+      const cls = d.blocked ? 'ok' : (d.success ? 'fail' : 'ok');
+      const tag = d.blocked ? 'BLOCKED' : (d.success ? 'EXPLOITED' : 'safe');
+      setAttack(d.name, tag, d.success && !d.blocked ? 'fail' : 'ok');
+      logLine(`${d.name}: ${d.detail} (loss $${Number(d.loss).toFixed(2)})`, d.success && !d.blocked ? 'fail' : 'ok');
+    }
+    if (d.type === 'phase_done') {
+      if (d.phase === 1) animateCounter(lostEl, d.totalLoss);
+      if (d.phase === 2) animateCounter(avoidedEl, d.avoided);
+      logLine(d.message, 'info');
+    }
+    if (d.type === 'builder') {
+      if (d.status === 'done') {
+        patchEl.textContent = d.patch;
+        diffEl.style.display = 'block';
+        diffEl.textContent = d.diff;
+      }
+    }
+    if (d.type === 'paypal') {
+      paypalEl.textContent = 'PayPal: ' + d.proof;
+    }
+    if (d.type === 'done') {
+      logLine('DONE — losses avoided: $' + Number(d.avoided).toFixed(2), 'ok');
+      runBtn.disabled = false;
+      es.close();
+    }
+    if (d.type === 'error') {
+      logLine('ERROR: ' + d.message, 'fail');
+      runBtn.disabled = false;
+      es.close();
+    }
+  };
+  es.onerror = () => { runBtn.disabled = false; es.close(); };
+});
+</script>
+</body>
+</html>
