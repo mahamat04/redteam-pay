@@ -53,7 +53,7 @@ The interface uses JetBrains Mono, with Cascadia Code and Consolas fallbacks. Wh
 
 ## Deploy to Vercel
 
-Vercel detects the Express app from the root `server.js` default export and serves the dashboard in `public/` as static assets. Keep Vercel's build and output-directory settings at their automatic defaults; import the `redteam-pay/` folder as the project root. The simulation works without credentials; to demonstrate the live AI explanation and PayPal sandbox proof, add these in Vercel's project environment settings:
+The root `vercel.json` selects Vercel's Express framework and clears any custom output-directory override, so Vercel detects the default export from root `server.js` instead of searching `public/` for a server entrypoint. Import the `redteam-pay/` folder as the project root. The simulation works without credentials; to demonstrate the live AI explanation and PayPal sandbox proof, add these in Vercel's project environment settings:
 
 - `LLM_API_KEY` (secret), plus `LLM_BASE_URL` and `LLM_MODEL` if using a compatible provider other than the defaults.
 - `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` (secrets), with `PAYPAL_ENVIRONMENT=sandbox`.
