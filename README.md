@@ -53,7 +53,7 @@ The interface uses JetBrains Mono, with Cascadia Code and Consolas fallbacks. Wh
 
 ## Deploy to Vercel
 
-The repository includes a serverless Express entry point and serves the dashboard from `public/`. Import the `redteam-pay/` folder as the Vercel project root. The simulation works without credentials; to demonstrate the live AI explanation and PayPal sandbox proof, add these in Vercel's project environment settings:
+Vercel detects the Express app from the root `server.js` default export and serves the dashboard in `public/` as static assets. Keep Vercel's build and output-directory settings at their automatic defaults; import the `redteam-pay/` folder as the project root. The simulation works without credentials; to demonstrate the live AI explanation and PayPal sandbox proof, add these in Vercel's project environment settings:
 
 - `LLM_API_KEY` (secret), plus `LLM_BASE_URL` and `LLM_MODEL` if using a compatible provider other than the defaults.
 - `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` (secrets), with `PAYPAL_ENVIRONMENT=sandbox`.

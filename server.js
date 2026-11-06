@@ -278,6 +278,7 @@ app.use((error, req, res, next) => {
 });
 
 export { app };
+export default app;
 
 if (process.env.VERCEL !== "1") {
   const server = app.listen(PORT, HOST, () => {

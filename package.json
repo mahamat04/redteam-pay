@@ -11,12 +11,10 @@
   "files": [
     "server.js",
     "mcp-server.js",
-    "api/",
     "lib/",
     "public/",
     ".agents/skills/redteam-pay/",
     "scripts/",
-    "vercel.json",
     "README.md",
     "LICENSE"
   ],
